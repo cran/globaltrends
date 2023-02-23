@@ -27,6 +27,8 @@
 #' @seealso
 #' * [start_db()]
 #' * [disconnect_db()]
+#' * [countries()]
+#' * [us_states()]
 #' * [example_keywords()]
 #' * [example_time()]
 #' * [example_control()]
@@ -50,7 +52,6 @@
 #' @importFrom RSQLite SQLite
 
 initialize_db <- function() {
-
   # create db folder -----------------------------------------------------------
   if (!dir.exists("db")) dir.create("db")
 
@@ -171,29 +172,15 @@ initialize_db <- function() {
 
 .enter_location <- function(globaltrends_db) {
   # create countries -----------------------------------------------------------
-  countries <- WDI::WDI_data$country
-  countries <- as_tibble(countries)
-  countries <- filter(countries, .data$region != "Aggregates")
-  countries <- select(countries, location = .data$iso2c)
-  countries <- WDI::WDI(country = countries$location, indicator = "NY.GDP.MKTP.KD", start = 2018, end = 2018)
-  countries <- bind_rows(countries, tibble(iso2c = "TW", country = "Taiwan", NY.GDP.MKTP.KD = 6.08186e+11, year = 2018))
-  countries <- mutate(countries, NY.GDP.MKTP.KD = case_when(is.na(.data$NY.GDP.MKTP.KD) ~ 0, TRUE ~ .data$NY.GDP.MKTP.KD))
-  countries <- mutate(countries, gdp_share = .data$NY.GDP.MKTP.KD / sum(.data$NY.GDP.MKTP.KD))
-  countries <- arrange(countries, -.data$gdp_share)
-  countries <- mutate(countries, gdp_cum_share = cumsum(.data$gdp_share))
-  countries <- filter(countries, .data$iso2c %in% unique(gtrendsR::countries$country_code) & .data$gdp_share >= 0.001)
   add_locations(
-    locations = countries$iso2c,
+    locations = globaltrends::countries,
     type = "countries",
     export = FALSE
   )
 
   # create us_states -----------------------------------------------------------
-  us_states <- gtrendsR::countries
-  us_states <- mutate_all(us_states, as.character)
-  us_states <- us_states[which(us_states$sub_code == "US-AL")[[1]]:which(us_states$sub_code == "US-DC")[[1]], ]
   add_locations(
-    locations = us_states$sub_code,
+    locations = globaltrends::us_states,
     type = "us_states",
     export = FALSE
   )
@@ -286,16 +273,16 @@ start_db <- function() {
 
   # load files -----------------------------------------------------------------
   keywords_control <- filter(tbl_keywords, .data$type == "control")
-  keywords_control <- select(keywords_control, -.data$type)
+  keywords_control <- select(keywords_control, -type)
   keywords_control <- collect(keywords_control)
   time_control <- filter(tbl_time, .data$type == "control")
-  time_control <- select(time_control, -.data$type)
+  time_control <- select(time_control, -type)
   time_control <- collect(time_control)
   keywords_object <- filter(tbl_keywords, .data$type == "object")
-  keywords_object <- select(keywords_object, -.data$type)
+  keywords_object <- select(keywords_object, -type)
   keywords_object <- collect(keywords_object)
   time_object <- filter(tbl_time, .data$type == "object")
-  time_object <- select(time_object, -.data$type)
+  time_object <- select(time_object, -type)
   time_object <- collect(time_object)
   keyword_synonyms <- collect(tbl_synonyms)
 

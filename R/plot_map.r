@@ -73,20 +73,18 @@ plot_map.exp_score <- function(data, type = c("obs", "sad", "trd"), ...) {
     }
     warning(text)
   } else {
-    data_wdi <- as_tibble(WDI::WDI_data$country)
-
-    data <- inner_join(data_wdi, data, by = c("iso2c" = "location"))
+    data <- inner_join(globaltrends::countries_wdi, data, by = c("iso2c" = "location"), multiple = "error")
     data <- select(
       data,
-      .data$country,
-      .data$iso2c,
-      .data$measure
+      country,
+      iso2c,
+      measure
     )
 
     data_map <- map_data("world")
     data_map <- filter(data_map, .data$region != "Antarctica")
 
-    data <- left_join(data_map, data, by = c("region" = "country"))
+    data <- left_join(data_map, data, by = c("region" = "country"), multiple = "error")
 
     plot <- ggplot(
       data = data,
@@ -101,7 +99,7 @@ plot_map.exp_score <- function(data, type = c("obs", "sad", "trd"), ...) {
       geom_map(
         map = data,
         colour = "#f2f2f2",
-        size = 0.5
+        linewidth = 0.5
       ) +
       scale_x_continuous(breaks = c()) +
       scale_y_continuous(breaks = c()) +
@@ -133,20 +131,18 @@ plot_map.abnorm_score <- function(data, ...) {
   data <- group_by(data, .data$location)
   data <- summarise(data, score_abnorm = mean(.data$score_abnorm), .groups = "drop")
 
-  data_wdi <- as_tibble(WDI::WDI_data$country)
-
-  data <- inner_join(data_wdi, data, by = c("iso2c" = "location"))
+  data <- inner_join(globaltrends::countries_wdi, data, by = c("iso2c" = "location"), multiple = "error")
   data <- select(
     data,
-    .data$country,
-    .data$iso2c,
-    .data$score_abnorm
+    country,
+    iso2c,
+    score_abnorm
   )
 
   data_map <- map_data("world")
   data_map <- filter(data_map, .data$region != "Antarctica")
 
-  data <- left_join(data_map, data, by = c("region" = "country"))
+  data <- left_join(data_map, data, by = c("region" = "country"), multiple = "error")
 
   plot <- ggplot(
     data = data,
@@ -161,7 +157,7 @@ plot_map.abnorm_score <- function(data, ...) {
     geom_map(
       map = data,
       colour = "#f2f2f2",
-      size = 0.5
+      linewidth = 0.5
     ) +
     scale_x_continuous(breaks = c()) +
     scale_y_continuous(breaks = c()) +

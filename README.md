@@ -1,4 +1,5 @@
 <!-- badges: start -->
+[![CRAN status](https://www.r-pkg.org/badges/version/globaltrends)](https://CRAN.R-project.org/package=globaltrends)
 [![R-CMD-check](https://github.com/ha-pu/globaltrends/workflows/R-CMD-check/badge.svg)](https://github.com/ha-pu/globaltrends/actions)
 [![Codecov test coverage](https://codecov.io/gh/ha-pu/globaltrends/branch/master/graph/badge.svg)](https://app.codecov.io/gh/ha-pu/globaltrends?branch=master)
 <!-- badges: end -->
@@ -6,7 +7,7 @@
 # globaltrends
 
 <p align="center">
-  <img src="hex-globaltrends/hex-globaltrends.png" width="250" height="250">
+  <img src="vignettes/hex-globaltrends.png" width="250" height="250">
 </p>
 
 Google offers public access to global search volumes through its search engine through the [Google Trends portal](https://trends.google.com/trends/). The `globaltrends` package downloads search volumes provided by Google Trends and uses them to measure and analyze the **distribution of search trends across countries or within countries**. `globaltrends` allows researchers and analysts to investigate patterns within these trends, such as **degree of internationalization** of firms and organizations or dissemination of political, social, or technological trends across the globe or within single countries.  
@@ -19,6 +20,9 @@ The enormous detail of the data opens additional applications in research that a
 
 ````
 # install ----------------------------------------------------------------------
+# current cran version
+install.packages("globaltrends")
+# current dev version
 devtools::install_github("ha-pu/globaltrends", build_vignettes = TRUE)
 
 # packages ---------------------------------------------------------------------

@@ -6,7 +6,10 @@ knitr::opts_chunk$set(
 
 ## ----setup, eval = FALSE------------------------------------------------------
 #  # install package --------------------------------------------------------------
-#  devtools::install_github("ha-pu/globaltrends/*release", build_vignettes = TRUE)
+#  # current cran version
+#  install.packages("globaltrends")
+#  # current dev version
+#  devtools::install_github("ha-pu/globaltrends", build_vignettes = TRUE)
 #  
 #  # load package -----------------------------------------------------------------
 #  library(globaltrends)
@@ -296,10 +299,10 @@ knitr::opts_chunk$set(
 ## ---- eval = FALSE------------------------------------------------------------
 #  # change locations -------------------------------------------------------------
 #  download_control(control = 1, locations = us_states)
-#  download_object(object = list(1,2), locations = us_states)
+#  download_object(object = list(1, 2), locations = us_states)
 #  download_mapping(control = 1, object = 2, locations = us_states)
 #  compute_score(control = 1, object = 2, locations = us_states)
-#  compute_doi(control = 1, object = list(1,2), locations = "us_states")
+#  compute_doi(control = 1, object = list(1, 2), locations = "us_states")
 
 ## ---- eval = FALSE------------------------------------------------------------
 #  add_locations(c("AT", "CH", "DE"), type = "dach")

@@ -9,6 +9,9 @@
 #' data in *data_object* that maps to this control batch is also removed.
 #' The dependency structure works as follows: *batch_keyword* / *batch_time* ->
 #' *data_control* -> *data_object* -> *data_score* -> *data_doi*.
+#' After using `remove_data`, run `vacuum_data` to free-up unused memory in
+#' the database file. Depending on the database size, `vacuum_data` might
+#' take some minutes for execution.
 #'
 #' @param table Database table from which the batch should be removed.  Object
 #' of type `character`.
@@ -39,6 +42,7 @@
 #'   control = 1,
 #'   object = 1
 #' )
+#' vacuum_data()
 #' }
 #'
 #' @export
@@ -47,6 +51,7 @@
 #' @importFrom dplyr filter
 #' @importFrom glue glue
 #' @importFrom rlang .data
+#' @rdname remove_data
 
 remove_data <- function(table, control = NULL, object = NULL) {
   .check_length(table, 1)
@@ -86,6 +91,15 @@ remove_data <- function(table, control = NULL, object = NULL) {
   }
 }
 
+#' @export
+#' @importFrom DBI dbExecute
+#' @rdname remove_data
+
+vacuum_data <- function() {
+  out <- dbExecute(conn = gt.env$globaltrends_db, statement = "vacuum")
+  if (out == 0) message("Vacuum completed successfully.")
+}
+
 #' @title Remove from batch_keywords
 #' @keywords internal
 #' @noRd
@@ -95,7 +109,7 @@ remove_data <- function(table, control = NULL, object = NULL) {
   if (type == "control") {
     dbExecute(conn = gt.env$globaltrends_db, statement = "DELETE FROM batch_keywords WHERE type=? AND batch=?", params = list(type, batch_c))
     keywords_control <- filter(gt.env$tbl_keywords, .data$type == "control")
-    keywords_control <- select(keywords_control, -.data$type)
+    keywords_control <- select(keywords_control, -type)
     keywords_control <- collect(keywords_control)
     lst_export <- list(keywords_control, keywords_control)
     names(lst_export) <- list("keywords_control", "keywords_control")
@@ -106,7 +120,7 @@ remove_data <- function(table, control = NULL, object = NULL) {
   } else if (type == "object") {
     dbExecute(conn = gt.env$globaltrends_db, statement = "DELETE FROM batch_keywords WHERE type=? AND batch=?", params = list(type, batch_o))
     keywords_object <- filter(gt.env$tbl_keywords, .data$type == "object")
-    keywords_object <- select(keywords_object, -.data$type)
+    keywords_object <- select(keywords_object, -type)
     keywords_object <- collect(keywords_object)
     lst_export <- list(keywords_object, keywords_object)
     names(lst_export) <- list("keywords_object", "keywords_object")
@@ -128,7 +142,7 @@ remove_data <- function(table, control = NULL, object = NULL) {
   if (type == "control") {
     dbExecute(conn = gt.env$globaltrends_db, statement = "DELETE FROM batch_time WHERE type=? AND batch=?", params = list(type, batch_c))
     time_control <- filter(gt.env$tbl_time, .data$type == "control")
-    time_control <- select(time_control, -.data$type)
+    time_control <- select(time_control, -type)
     time_control <- collect(time_control)
     lst_export <- list(time_control, time_control)
     names(lst_export) <- list("time_control", "time_control")
@@ -137,7 +151,7 @@ remove_data <- function(table, control = NULL, object = NULL) {
   } else if (type == "object") {
     dbExecute(conn = gt.env$globaltrends_db, statement = "DELETE FROM batch_time WHERE type=? AND batch=?", params = list(type, batch_o))
     time_object <- filter(gt.env$tbl_time, .data$type == "object")
-    time_object <- select(time_object, -.data$type)
+    time_object <- select(time_object, -type)
     time_object <- collect(time_object)
     lst_export <- list(time_object, time_object)
     names(lst_export) <- list("time_object", "time_object")

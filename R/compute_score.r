@@ -108,7 +108,6 @@ compute_score.numeric <- function(object, control = 1, locations = gt.env$countr
     walk(list(control, object), .check_batch)
     ts_control <- TRUE
     ts_object <- TRUE
-    locations[locations == "NA"] <- "NX" # handle namibia
     walk(locations, ~ {
       if (.test_empty(
         table = "data_score",
@@ -139,10 +138,11 @@ compute_score.numeric <- function(object, control = 1, locations = gt.env$countr
             ) >= 24
           ) {
             # adjust to time series and impute negative values
-            qry_control <- nest(qry_control, data = c(.data$date, .data$hits))
-            qry_control <- mutate(qry_control, data = map(.data$data, .adjust_ts))
-            qry_control <- unnest(qry_control, .data$data)
-            qry_control <- mutate(qry_control,
+            qry_control <- nest(qry_control, data = c(date, hits))
+            qry_control <- mutate(qry_control, data = map(data, .adjust_ts))
+            qry_control <- unnest(qry_control, data)
+            qry_control <- mutate(
+              qry_control,
               hits_trd = case_when(
                 .data$hits_trd < 0 & .data$hits_sad < 0 ~ 0.1,
                 .data$hits_trd < 0 ~ (.data$hits_obs + .data$hits_sad) / 2,
@@ -154,10 +154,11 @@ compute_score.numeric <- function(object, control = 1, locations = gt.env$countr
                 TRUE ~ .data$hits_sad
               )
             )
-            qry_object <- nest(qry_object, data = c(.data$date, .data$hits))
-            qry_object <- mutate(qry_object, data = map(.data$data, .adjust_ts))
-            qry_object <- unnest(qry_object, .data$data)
-            qry_object <- mutate(qry_object,
+            qry_object <- nest(qry_object, data = c(date, hits))
+            qry_object <- mutate(qry_object, data = map(data, .adjust_ts))
+            qry_object <- unnest(qry_object, data)
+            qry_object <- mutate(
+              qry_object,
               hits_trd = case_when(
                 .data$hits_trd < 0 & .data$hits_sad < 0 ~ 0.1,
                 .data$hits_trd < 0 ~ (.data$hits_obs + .data$hits_sad) / 2,
@@ -196,7 +197,8 @@ compute_score.numeric <- function(object, control = 1, locations = gt.env$countr
               "date",
               "key"
             ),
-            suffix = c("_o", "_c")
+            suffix = c("_o", "_c"),
+            multiple = "error"
           )
           data_control <- mutate(
             data_control,
@@ -209,23 +211,25 @@ compute_score.numeric <- function(object, control = 1, locations = gt.env$countr
               TRUE ~ .data$value_c
             )
           )
-          data_control <- mutate(data_control,
+          data_control <- mutate(
+            data_control,
             benchmark = coalesce(.data$value_o / .data$value_c, 0)
           )
-          data_control <- select(data_control, .data$location, .data$date, .data$key, .data$benchmark)
+          data_control <- select(data_control, location, date, key, benchmark)
           data_control <- inner_join(
             data_control,
             qry_control,
-            by = c("location", "date", "key")
+            by = c("location", "date", "key"),
+            multiple = "all"
           )
           data_control <- mutate(data_control, value = .data$value * .data$benchmark)
           data_control <- select(
             data_control,
-            .data$location,
-            .data$date,
-            .data$key,
-            .data$keyword,
-            .data$value
+            location,
+            date,
+            key,
+            keyword,
+            value
           )
 
           data_object <- anti_join(qry_object, data_control, by = c("keyword"))
@@ -236,18 +240,20 @@ compute_score.numeric <- function(object, control = 1, locations = gt.env$countr
           data_object <- left_join(
             data_object,
             data_control,
-            by = c("location", "date", "key")
+            by = c("location", "date", "key"),
+            multiple = "error"
           )
-          data_object <- mutate(data_object,
+          data_object <- mutate(
+            data_object,
             score = coalesce(.data$value / .data$value_c, 0),
             key = str_replace(.data$key, "hits$", "score_obs"),
             key = str_replace(.data$key, "hits_", "score_")
           )
-          data_object <- select(data_object, .data$location, .data$date, .data$keyword, .data$key, .data$score)
+          data_object <- select(data_object, location, date, keyword, key, score)
           out <- pivot_wider(
             data_object,
-            names_from = .data$key,
-            values_from = .data$score,
+            names_from = key,
+            values_from = score,
             values_fill = 0
           )
           out <- mutate(
@@ -268,7 +274,6 @@ compute_score.numeric <- function(object, control = 1, locations = gt.env$countr
         }
       }
       in_location <- .x
-      in_location[in_location == "NX"] <- "NA" # handle namibia
       message(glue("Successfully computed search score | control: {control} | object: {object} | location: {in_location} [{current}/{total}]", current = which(locations == .x), total = length(locations)))
     })
     .aggregate_synonym(object = object)
@@ -318,7 +323,7 @@ compute_voi <- function(object, control = 1) {
   out <- group_by(out, .data$location, .data$keyword, .data$year, .data$month, .data$day)
   out <- summarise(out, hits = mean(.data$hits), .groups = "drop")
   out <- mutate(out, date = ymd(glue("{.data$year}-{.data$month}-{.data$day}")))
-  out <- select(out, .data$location, .data$keyword, .data$date, .data$hits)
+  out <- select(out, location, keyword, date, hits)
   return(out)
 }
 
@@ -347,7 +352,6 @@ compute_voi <- function(object, control = 1) {
 #' @keywords internal
 #' @noRd
 #'
-#' @export
 #' @importFrom DBI dbExecute
 #' @importFrom DBI dbWriteTable
 #' @importFrom dplyr anti_join
@@ -363,8 +367,8 @@ compute_voi <- function(object, control = 1) {
 
 .aggregate_synonym <- function(object) {
   lst_synonym <- filter(gt.env$keywords_object, .data$batch == object)
-  lst_synonym1 <- inner_join(lst_synonym, gt.env$keyword_synonyms, by = "keyword")
-  lst_synonym2 <- inner_join(lst_synonym, gt.env$keyword_synonyms, by = c("keyword" = "synonym"))
+  lst_synonym1 <- inner_join(lst_synonym, gt.env$keyword_synonyms, by = "keyword", multiple = "all")
+  lst_synonym2 <- inner_join(lst_synonym, gt.env$keyword_synonyms, by = c("keyword" = "synonym"), multiple = "error")
   lst_synonym <- unique(c(lst_synonym1$synonym, lst_synonym2$keyword))
 
   if (length(lst_synonym) > 0) {
@@ -387,7 +391,8 @@ compute_voi <- function(object, control = 1) {
           sub_main,
           sub_synonym,
           by = c("location", "date", "batch_c"),
-          suffix = c("", "_s")
+          suffix = c("", "_s"),
+          multiple = "error"
         )
 
         sub_main <- mutate(
@@ -398,26 +403,27 @@ compute_voi <- function(object, control = 1) {
         )
         sub_main <- select(
           sub_main,
-          .data$location,
-          .data$keyword,
-          .data$date,
-          .data$score_obs,
-          .data$score_sad,
-          .data$score_trd,
-          .data$batch_c,
-          .data$batch_o,
-          .data$synonym
+          location,
+          keyword,
+          date,
+          score_obs,
+          score_sad,
+          score_trd,
+          batch_c,
+          batch_o,
+          synonym
         )
 
         data_synonym_agg <- inner_join(
           sub_synonym,
           select(
             sub_main,
-            .data$location,
-            .data$date,
-            .data$batch_c
+            location,
+            date,
+            batch_c
           ),
-          by = c("location", "date", "batch_c")
+          by = c("location", "date", "batch_c"),
+          multiple = "error"
         )
         data_synonym_agg <- mutate(data_synonym_agg, synonym = 2)
         data_synonym_nagg <- anti_join(

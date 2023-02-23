@@ -17,8 +17,8 @@
 #' existing batch, all downloads and computations must be rerun.
 #' If you use search topics for object keywords, make sure to use search topics
 #' for control keywords and vice versa. See Google's
-#' [FAQ](https://support.google.com/trends/answer/4359550) for additional
-#' information on search topics.
+#' [FAQ](https://web.archive.org/web/20230117193147/https://support.google.com/trends/answer/4359550/)
+#' for additional information on search topics.
 #' *Note*: To avoid trailing spaces `stringr::str_squish` is automatically
 #' applied to all keywords.
 #'
@@ -159,13 +159,13 @@ add_object_keyword <- function(keyword, time = "2010-01-01 2020-12-31") {
     data <- tibble(batch = new_batch, time = time, type = "control")
     dbWriteTable(conn = gt.env$globaltrends_db, name = "batch_time", value = data, append = TRUE)
     keywords_control <- filter(gt.env$tbl_keywords, .data$type == "control")
-    keywords_control <- select(keywords_control, -.data$type)
+    keywords_control <- select(keywords_control, -type)
     keywords_control <- collect(keywords_control)
     lst_export <- list(keywords_control, keywords_control)
     names(lst_export) <- list("keywords_control", "keywords_control")
     invisible(list2env(lst_export, envir = gt.env))
     time_control <- filter(gt.env$tbl_time, .data$type == "control")
-    time_control <- select(time_control, -.data$type)
+    time_control <- select(time_control, -type)
     time_control <- collect(time_control)
     lst_export <- list(time_control, time_control)
     names(lst_export) <- list("time_control", "time_control")
@@ -183,13 +183,13 @@ add_object_keyword <- function(keyword, time = "2010-01-01 2020-12-31") {
     data <- tibble(batch = new_batch, time = time, type = "object")
     dbWriteTable(conn = gt.env$globaltrends_db, name = "batch_time", value = data, append = TRUE)
     keywords_object <- filter(gt.env$tbl_keywords, .data$type == "object")
-    keywords_object <- select(keywords_object, -.data$type)
+    keywords_object <- select(keywords_object, -type)
     keywords_object <- collect(keywords_object)
     lst_export <- list(keywords_object, keywords_object)
     names(lst_export) <- list("keywords_object", "keywords_object")
     invisible(list2env(lst_export, envir = gt.env))
     time_object <- filter(gt.env$tbl_time, .data$type == "object")
-    time_object <- select(time_object, -.data$type)
+    time_object <- select(time_object, -type)
     time_object <- collect(time_object)
     lst_export <- list(time_object, time_object)
     names(lst_export) <- list("time_object", "time_object")
@@ -202,6 +202,11 @@ add_object_keyword <- function(keyword, time = "2010-01-01 2020-12-31") {
 }
 
 #' Add synonyms for object keywords
+#'
+#' @aliases
+#' add_synonym
+#' add_synonym.character
+#' add_synonym.list
 #'
 #' @description
 #' The function allows to add synonyms for object keywords. Sometimes, objects
@@ -233,6 +238,7 @@ add_object_keyword <- function(keyword, time = "2010-01-01 2020-12-31") {
 #' }
 #'
 #' @export
+#' @rdname add_synonym
 #' @importFrom DBI dbWriteTable
 #' @importFrom glue glue
 #' @importFrom purrr walk
@@ -242,6 +248,7 @@ add_object_keyword <- function(keyword, time = "2010-01-01 2020-12-31") {
 add_synonym <- function(keyword, synonym) UseMethod("add_synonym", synonym)
 
 #' @export
+#' @rdname add_synonym
 
 add_synonym.character <- function(keyword, synonym) {
   .check_length(keyword, 1)
@@ -268,6 +275,7 @@ add_synonym.character <- function(keyword, synonym) {
 }
 
 #' @export
+#' @rdname add_synonym
 
 add_synonym.list <- function(keyword, synonym) {
   walk(synonym, add_synonym, keyword = keyword)
