@@ -14,13 +14,17 @@
 #' and computation functions check whether data for a location already exists.
 #' Therefore, data will not be duplicated when location data already exists from
 #' another set.
+#'
+#' @section Warning:
 #' Unfortunately, the Google Trends API cannot handle the location
 #' "NA - Namibia". Therefore, the location will be dropped automatically.
 #'
 #' @param locations Locations that should be added as set of locations. Vector of
 #' type `character`.
+#'
 #' @param type Name of the location set that should be added. Object of type
 #' `character` of length 1.
+#'
 #' @param export Indicator whether the new location set should be directly
 #' exported to the package environment `gt.env`. Object of type `logical`,
 #' defaults to `TRUE`.
@@ -33,13 +37,13 @@
 #' \dontrun{
 #' add_locations(locations = c("AT", "CH", "DE"), type = "DACH")
 #' }
+#'
 #' @export
-#' @importFrom DBI dbWriteTable
+#' @importFrom DBI dbAppendTable
 #' @importFrom dplyr collect
 #' @importFrom dplyr distinct
 #' @importFrom dplyr filter
 #' @importFrom dplyr pull
-#' @importFrom glue glue
 #' @importFrom purrr map
 #' @importFrom purrr walk
 #' @importFrom rlang .data
@@ -58,7 +62,7 @@ add_locations <- function(locations, type, export = TRUE) {
   codes <- unique(codes)
   codes <- na.omit(codes)
   walk(locations, ~ {
-    if (!(.x %in% codes)) stop(glue("Error: Invalid input for new location!\nLocation must be part of columns 'country_code' or 'sub_code' of table gtrendsR::countries.\nYou provided {.x}."))
+    if (!(.x %in% codes)) stop(paste0("Error: Invalid input for new location!\nLocation must be part of columns 'country_code' or 'sub_code' of table gtrendsR::countries.\nYou provided ", .x, "."))
   })
 
   # handle Namibia
@@ -73,11 +77,11 @@ add_locations <- function(locations, type, export = TRUE) {
   }
 
   data <- tibble(location = locations, type = type)
-  dbWriteTable(conn = gt.env$globaltrends_db, name = "data_locations", value = data, append = TRUE)
+  dbAppendTable(conn = gt.env$globaltrends_db, name = "data_locations", value = data)
 
   if (export) .export_locations()
 
-  message(glue("Successfully created new location set {type} ({locations_collapse}).", locations_collapse = paste(locations, collapse = ", ")))
+  message(paste0("Successfully created new location set ", type, " (", paste(locations, collapse = ", "), ")."))
 }
 
 #' @title Export locations to package environment gt.env

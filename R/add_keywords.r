@@ -15,16 +15,21 @@
 #' of length four (five) or less. Each batch of keywords is combined with a time
 #' period for which data will be downloaded. To change the time period for an
 #' existing batch, all downloads and computations must be rerun.
+#'
+#' @section Warning:
 #' If you use search topics for object keywords, make sure to use search topics
 #' for control keywords and vice versa. See Google's
 #' [FAQ](https://web.archive.org/web/20230117193147/https://support.google.com/trends/answer/4359550/)
 #' for additional information on search topics.
-#' *Note*: To avoid trailing spaces `stringr::str_squish` is automatically
+#'
+#' @section Note:
+#' To avoid trailing spaces `stringr::str_squish` is automatically
 #' applied to all keywords.
 #'
 #' @param keyword Keywords that should be added as batch. Vector of type
 #' `character` or a `list` of `character` vectors. The function also allows the
 #' usage of codes for search topics instead of search terms.
+#'
 #' @param time Time frame for which the batch data should be downloaded. Object
 #' of type `character` that takes the from "YYYY-MM-DD YYYY-MM-DD".
 #' Defaults to *"2010-01-01 2020-12-31"*.
@@ -76,6 +81,7 @@
 #' )
 #' # This adds the following topics: Gmail, Google Maps, Google Translate, Wikipedia, YouTube
 #' }
+#'
 #' @seealso
 #' * [example_keywords()]
 #' * [example_time()]
@@ -104,10 +110,9 @@ add_object_keyword <- function(keyword, time = "2010-01-01 2020-12-31") {
 #' @keywords internal
 #' @noRd
 #'
-#' @importFrom DBI dbWriteTable
+#' @importFrom DBI dbAppendTable
 #' @importFrom dplyr collect
 #' @importFrom dplyr filter
-#' @importFrom glue glue
 #' @importFrom purrr map
 #' @importFrom rlang .data
 #' @importFrom stringr str_squish
@@ -155,9 +160,9 @@ add_object_keyword <- function(keyword, time = "2010-01-01 2020-12-31") {
     }
     keyword <- str_squish(keyword)
     data <- tibble(batch = new_batch, keyword, type = "control")
-    dbWriteTable(conn = gt.env$globaltrends_db, name = "batch_keywords", value = data, append = TRUE)
+    dbAppendTable(conn = gt.env$globaltrends_db, name = "batch_keywords", value = data)
     data <- tibble(batch = new_batch, time = time, type = "control")
-    dbWriteTable(conn = gt.env$globaltrends_db, name = "batch_time", value = data, append = TRUE)
+    dbAppendTable(conn = gt.env$globaltrends_db, name = "batch_time", value = data)
     keywords_control <- filter(gt.env$tbl_keywords, .data$type == "control")
     keywords_control <- select(keywords_control, -type)
     keywords_control <- collect(keywords_control)
@@ -170,7 +175,7 @@ add_object_keyword <- function(keyword, time = "2010-01-01 2020-12-31") {
     lst_export <- list(time_control, time_control)
     names(lst_export) <- list("time_control", "time_control")
     invisible(list2env(lst_export, envir = gt.env))
-    message(glue("Successfully created new control batch {new_batch} ({keyword_collapse}, {time}).", keyword_collapse = paste(keyword, collapse = ", ")))
+    message(paste0("Successfully created new control batch ", new_batch, " (", paste(keyword, collapse = ", "), ", ", time, ")."))
     return(new_batch)
   } else if (type == "object") {
     if (nrow(gt.env$keywords_object) == 0) {
@@ -179,9 +184,9 @@ add_object_keyword <- function(keyword, time = "2010-01-01 2020-12-31") {
       new_batch <- max(gt.env$keywords_object$batch) + 1
     }
     data <- tibble(batch = new_batch, keyword, type = "object")
-    dbWriteTable(conn = gt.env$globaltrends_db, name = "batch_keywords", value = data, append = TRUE)
+    dbAppendTable(conn = gt.env$globaltrends_db, name = "batch_keywords", value = data)
     data <- tibble(batch = new_batch, time = time, type = "object")
-    dbWriteTable(conn = gt.env$globaltrends_db, name = "batch_time", value = data, append = TRUE)
+    dbAppendTable(conn = gt.env$globaltrends_db, name = "batch_time", value = data)
     keywords_object <- filter(gt.env$tbl_keywords, .data$type == "object")
     keywords_object <- select(keywords_object, -type)
     keywords_object <- collect(keywords_object)
@@ -194,7 +199,7 @@ add_object_keyword <- function(keyword, time = "2010-01-01 2020-12-31") {
     lst_export <- list(time_object, time_object)
     names(lst_export) <- list("time_object", "time_object")
     invisible(list2env(lst_export, envir = gt.env))
-    message(glue("Successfully created new object batch {new_batch} ({keyword_collapse}, {time}).", keyword_collapse = paste(keyword, collapse = ", ")))
+    message(paste0("Successfully created new object batch ", new_batch, " (", paste(keyword, collapse = ", "), ", ", time, ")."))
     return(new_batch)
   } else {
     stop("Error: 'type' allows only 'control' or 'object'.\nYou provided another value.")
@@ -214,11 +219,14 @@ add_object_keyword <- function(keyword, time = "2010-01-01 2020-12-31") {
 #' for Bayern Munich. Search scores for keywords that are added as synonyms are
 #' aggregated when running `compute_score`. The function allows to add
 #' synonyms for a single keyword at a time.
-#' *Note*: To avoid trailing spaces `stringr::str_squish` is automatically
+#'
+#' @section Note:
+#' To avoid trailing spaces `stringr::str_squish` is automatically
 #' applied to all keywords and synonyms.
 #'
 #' @param keyword Keyword of type `character` and length 1 for which the
 #' synonyms are added.
+#'
 #' @param synonym Synonym of type `character`.
 #'
 #' @return
@@ -239,8 +247,7 @@ add_object_keyword <- function(keyword, time = "2010-01-01 2020-12-31") {
 #'
 #' @export
 #' @rdname add_synonym
-#' @importFrom DBI dbWriteTable
-#' @importFrom glue glue
+#' @importFrom DBI dbAppendTable
 #' @importFrom purrr walk
 #' @importFrom stringr str_squish
 #' @importFrom tibble tibble
@@ -256,11 +263,11 @@ add_synonym.character <- function(keyword, synonym) {
   if (length(synonym) > 1) {
     add_synonym(keyword = keyword, synonym = as.list(synonym))
   } else {
-    if (!is.character(synonym)) stop(glue("Error:'synonym' must of type 'character'.\nYou provided an object of type {typeof(synonym)}."))
+    if (!is.character(synonym)) stop(paste0("Error:'synonym' must of type 'character'.\nYou provided an object of type ", typeof(synonym), "."))
     keyword <- str_squish(keyword)
     synonym <- str_squish(synonym)
     out <- tibble(keyword, synonym)
-    dbWriteTable(
+    dbAppendTable(
       conn = gt.env$globaltrends_db,
       name = "keyword_synonyms",
       value = out,
@@ -270,7 +277,7 @@ add_synonym.character <- function(keyword, synonym) {
     lst_export <- list(keyword_synonyms, keyword_synonyms)
     names(lst_export) <- list("keyword_synonyms", "keyword_synonyms")
     invisible(list2env(lst_export, envir = gt.env))
-    message(glue("Successfully added synonym | keyword: {keyword} | synonym: {synonym}"))
+    message(paste0("Successfully added synonym | keyword: ", keyword, " | synonym: ", synonym, "."))
   }
 }
 

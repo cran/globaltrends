@@ -25,16 +25,21 @@
 #'
 #' @param data Object of class `exp_score`, `exp_voi` or
 #' `exp_doi` generated through `export_...` functions.
+#'
 #' @param train_win Object of type `numeric`. Length of rolling average
 #' training window in months. Defaults to 12.
+#'
 #' @param train_break Object of type `numeric`. Length of break between
 #' rolling average training window and date in months. Defaults to 1.
+#'
 #' @param type Object of type `character` indicating the type of time
 #' series-column from data_score, takes either *obs*, *sad*, or
 #' *trd*. Defaults to *"obs"*.
+#'
 #' @param measure Object of type `character` indicating the measure used
 #' for DOI computation for which abnormal changes should be analyzed. Takes
 #' either *gini*, *hhi*, or *entropy*. Defaults to *"gini"*.
+#'
 #' @param ...	Further arguments passed to or from other methods.
 #'
 #' @return
@@ -92,7 +97,7 @@ get_abnorm_hist.exp_score <- function(data, train_win = 12, train_break = 0, typ
   .check_length(train_break, 1)
   .check_input(train_break, "numeric")
   type <- match.arg(type)
-  data$score <- data[glue("score_{type}")][[1]]
+  data$score <- data[paste0("score_", type)][[1]]
   data <- group_by(data, .data$keyword, .data$control, .data$location)
   data <- mutate(data, base = rollmean(.data$score, k = train_win, align = "right", fill = NA))
   data <- mutate(data, base = lag(.data$base, n = train_break + 1))
@@ -123,7 +128,7 @@ get_abnorm_hist.exp_voi <- function(data, train_win = 12, train_break = 0, type 
   .check_length(train_break, 1)
   .check_input(train_break, "numeric")
   type <- match.arg(type)
-  data$voi <- data[glue("score_{type}")][[1]]
+  data$voi <- data[paste0("score_", type)][[1]]
   data <- group_by(data, .data$keyword, .data$control)
   data <- mutate(data, base = rollmean(.data$voi, k = train_win, align = "right", fill = NA))
   data <- mutate(data, base = lag(.data$base, n = train_break + 1))

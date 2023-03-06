@@ -7,7 +7,9 @@
 #' keyword is used.
 #'
 #' @inheritParams plot_ts
+#'
 #' @param data_voi Data exported from `export_voi` function.
+#'
 #' @param data_doi Data exported from `export_doi` function.
 #'
 #' @return Line plot of VOI and DOI time series as `ggplot2` object.
@@ -59,7 +61,6 @@
 #' @importFrom ggplot2 ggplot
 #' @importFrom ggplot2 facet_wrap
 #' @importFrom ggplot2 labs
-#' @importFrom glue glue
 #' @importFrom rlang .data
 #' @importFrom stringr str_replace
 #' @importFrom stringr str_to_upper
@@ -85,13 +86,13 @@ plot_voi_doi <- function(data_voi, data_doi, type = c("obs", "sad", "trd"), meas
   if (all(is.na(data_voi$hits)) | all(is.na(data_doi$measure))) {
     text <- "Plot cannot be created."
     if (all(is.na(data_voi$hits))) {
-      text <- glue("{text}\nThere is no non-missing data for score_{type} in data_voi.")
+      text <- paste0(text, "\nThere is no non-missing data for score_", type, " in data_voi.")
     }
     if (all(is.na(data_doi$measure))) {
-      text <- glue("{text}\nThere is no non-missing data for score_{type} in data_doi.")
+      text <- paste0(text, "\nThere is no non-missing data for score_", type, " in data_doi.")
     }
     if (type != "obs") {
-      text <- glue("{text}\nMaybe time series adjustments were impossible in compute_score due to less than 24 months of data.")
+      text <- paste0(text, "\nMaybe time series adjustments were impossible in compute_score due to less than 24 months of data.")
     }
     warning(text)
   } else {
@@ -107,7 +108,7 @@ plot_voi_doi <- function(data_voi, data_doi, type = c("obs", "sad", "trd"), meas
     len_keywords <- length(unique(data$keyword))
 
     if (len_keywords > 1) {
-      warning(glue("The plot function is limited to 1 keyword.\nYou use {len_keywords} keywords.\nOnly the first keyword is used."))
+      warning(paste0("The plot function is limited to 1 keyword.\nYou use ", len_keywords, " keywords.\nOnly the first keyword is used."))
       data <- filter(data, .data$keyword %in% unique(data$keyword)[[1]])
     }
 
@@ -124,7 +125,7 @@ plot_voi_doi <- function(data_voi, data_doi, type = c("obs", "sad", "trd"), meas
     }
 
     plot <- plot +
-      labs(x = NULL, y = NULL, title = unique(data$keyword)[[1]], caption = glue("DOI computed as {str_to_upper(measure)}."))
+      labs(x = NULL, y = NULL, title = unique(data$keyword)[[1]], caption = paste0("DOI computed as ", str_to_upper(measure), "."))
 
     return(plot)
   }

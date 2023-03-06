@@ -11,26 +11,24 @@
 #' distribution of country search scores.
 #'
 #' @details
-#' The function uses an inverted Gini-coefficient
-#' `dplyr::coalesce(1 - ineq::ineq(series, type = "Gini"), 0)`
-#' as measure for the degree of internationalization. The more uniform the
-#' distribution of search scores across all countries, the higher the inverted
-#' Gini-coefficient and the greater the degree of internationalization. In
-#' addition to the Gini-coefficient, the package uses inverted Herfindahl index
-#' `coalesce(1 - sum((series / sum(series))^2), 0)` and inverted Entropy
-#' `dplyr::coalesce(-1 * ineq::ineq(series, parameter = 1, type = "entropy"), 0)`
-#' as measures for internationalization.
+#' The function uses an inverted Gini-coefficient as measure for the degree of
+#' internationalization. The more uniform the distribution of search scores
+#' across all countries, the higher the inverted Gini-coefficient and the
+#' greater the degree of internationalization. In addition to the
+#' Gini-coefficient, the package uses inverted Herfindahl index and inverted
+#' Entropy as measures for internationalization.
 #'
 #' @param control Control batch for which the search score is used. Object
 #' of type `numeric`.
+#'
 #' @param object Object batch for which the keyword-country data
 #' is aggregated and DOI is computed.  Object of type `numeric`.
+#'
 #' @param locations List of locations for which the search score is used.
 #' Object of type `character`. Defaults to *"countries"*.
 #'
 #' @seealso
 #' * [example_doi()]
-#' * [ineq::ineq()]
 #'
 #' @return
 #' Message that data was aggregated successfully. Data is written to table
@@ -52,12 +50,11 @@
 #'
 #' @export
 #' @rdname compute_doi
-#' @importFrom DBI dbWriteTable
+#' @importFrom DBI dbAppendTable
 #' @importFrom dplyr collect
 #' @importFrom dplyr filter
 #' @importFrom dplyr mutate
 #' @importFrom dplyr select
-#' @importFrom glue glue
 #' @importFrom purrr map_dbl
 #' @importFrom purrr map_lgl
 #' @importFrom purrr walk
@@ -122,9 +119,9 @@ compute_doi.numeric <- function(object, control = 1, locations = "countries") {
         batch_o = object,
         locations = locations
       )
-      dbWriteTable(conn = gt.env$globaltrends_db, name = "data_doi", value = out, append = TRUE)
+      dbAppendTable(conn = gt.env$globaltrends_db, name = "data_doi", value = out)
     }
-    message(glue("Successfully computed DOI | control: {control} | object: {object} [{object}/{total}]", total = max(gt.env$keywords_object$batch)))
+    message(paste0("Successfully computed DOI | control: ", control, " | object: ", object, " [", object, "/", max(gt.env$keywords_object$batch), "]"))
   }
 }
 
@@ -145,7 +142,16 @@ compute_doi.list <- function(object, control = 1, locations = "countries") {
 #' @importFrom dplyr coalesce
 
 .compute_gini <- function(series) {
-  out <- coalesce(1 - ineq::ineq(series, type = "Gini"), 0)
+  gini <- function(x) {
+    n <- length(x)
+    x <- sort(x)
+    g <- sum(x * seq(n))
+    g <- 2 * g / sum(x) - (n + 1)
+    g <- g / n
+    return(g)
+  }
+
+  out <- coalesce(1 - gini(series), 0)
   return(out)
 }
 
@@ -167,7 +173,15 @@ compute_doi.list <- function(object, control = 1, locations = "countries") {
 #' @noRd
 
 .compute_entropy <- function(series) {
-  out <- coalesce(-1 * ineq::ineq(series, parameter = 1, type = "entropy"), 0)
+  entropy <- function(x) {
+    x <- x[!(x == 0)]
+    e <- x / mean(x)
+    e <- sum(x * log(e))
+    e <- e / sum(x)
+    return(e)
+  }
+
+  out <- coalesce(-1 * entropy(series), 0)
   if (out == -Inf) {
     out <- 0
   }

@@ -26,14 +26,24 @@
 #' for some time. In this case, `download_object` waits 60 minutes
 #' before it retries the download.
 #'
+#' @section Warning:
+#' We advise against the usage of *category codes* in
+#' downloads. If you use *categories* to narrow the context of keyword usage,
+#' these categories are applied to **ALL** keywords in the batch. This applies
+#' to *control* keywords as well as *object* keywords and can result in
+#' unintended behavior.
+#'
 #' @param object Object batch for which the data is downloaded. Object
 #' of type `numeric` or object of type `list` containing single
 #' object of type `numeric`.
+#'
 #' @param control Control batch that is used for mapping. Object of type
 #' `numeric`. Defaults to `1`.
+#'
 #' @param locations List of countries or regions for which the data is
 #' downloaded. Refers to lists generated in `start_db`. Defaults to
 #' `countries`.
+#'
 #' @param ... Arguments that are passed on to the `gtrendsR::gtrends` function.
 #'
 #' @seealso
@@ -58,9 +68,8 @@
 #'
 #' @export
 #' @rdname download_object
-#' @importFrom DBI dbWriteTable
+#' @importFrom DBI dbAppendTable
 #' @importFrom dplyr mutate
-#' @importFrom glue glue
 #' @importFrom purrr walk
 #' @importFrom rlang .data
 
@@ -109,23 +118,19 @@ download_object.numeric <- function(object, control = 1, locations = gt.env$coun
                 batch_c = control,
                 batch_o = object
               )
-              dbWriteTable(conn = gt.env$globaltrends_db, name = "data_object", value = out, append = TRUE)
+              dbAppendTable(conn = gt.env$globaltrends_db, name = "data_object", value = out)
               success <- TRUE
               break()
             }
             i <- i + 1
           }
           if (!success) stop("Error: Too little signal in search volumes for control keywords.\nReconsider choice of control keywords.")
-          message(glue("Successfully downloaded object data | object: {object} | control: {control} | location: {in_location} [{current}/{total}]",
-            current = which(locations == .x), total = length(locations)
-          ))
+          message(paste0("Successfully downloaded object data | object: ", object, " | control: ", control, " | location: ", in_location, " [", which(locations == .x), "/", length(locations), "]"))
         } else {
-          message(glue("Download for object data failed.\nThere is no data in 'data_control' for control batch {control} and location {in_location}."))
+          message(paste0("Download for object data failed.\nThere is no data in 'data_control' for control batch ", control, " and location ", in_location, "."))
         }
       } else {
-        message(glue("Object data already available | object: {object} | control: {control} | location: {in_location} [{current}/{total}]",
-          current = which(locations == .x), total = length(locations)
-        ))
+        message(paste0("Object data already available | object: ", object, " | control: ", control, " | location: ", in_location, " [", which(locations == .x), "/", length(locations), "]"))
       }
     })
   }

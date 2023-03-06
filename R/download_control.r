@@ -22,12 +22,21 @@
 #' this case, `download_control` waits 60 minutes before it retries the
 #' download.
 #'
+#' @section Warning:
+#' We advise against the usage of *category codes* in
+#' downloads. If you use *categories* to narrow the context of keyword usage,
+#' these categories are applied to **ALL** keywords in the batch. This applies
+#' to *control* keywords as well as *object* keywords and can result in
+#' unintended behavior.
+#'
 #' @param control Control batch for which the data is downloaded. Object
 #' of type `numeric` or object of type `list` containing single
 #' objects of type `numeric`.
+#'
 #' @param locations List of countries or regions for which the data is
 #' downloaded. Refers to lists generated in `start_db`. Defaults to
 #' `gt.env$countries`.
+#'
 #' @param ... Arguments that are passed on to the `gtrendsR::gtrends` function.
 #'
 #' @seealso
@@ -52,9 +61,8 @@
 #'
 #' @export
 #' @rdname download_control
-#' @importFrom DBI dbWriteTable
+#' @importFrom DBI dbAppendTable
 #' @importFrom dplyr mutate
-#' @importFrom glue glue
 #' @importFrom purrr walk
 #' @importFrom rlang .data
 
@@ -83,15 +91,11 @@ download_control.numeric <- function(control, locations = gt.env$countries, ...)
         out <- do.call(.get_trend, c(args, location = .x, term = list(terms), time = time))
         if (!is.null(out)) {
           out <- mutate(out, batch = control)
-          dbWriteTable(conn = gt.env$globaltrends_db, name = "data_control", value = out, append = TRUE)
+          dbAppendTable(conn = gt.env$globaltrends_db, name = "data_control", value = out)
         }
-        message(glue("Successfully downloaded control data | control: {control} | location: {in_location} [{current}/{total}]",
-          current = which(locations == .x), total = length(locations)
-        ))
+        message(paste0("Successfully downloaded control data | control: ", control, " | location: ", in_location, " [", which(locations == .x), "/", length(locations), "]"))
       } else {
-        message(glue("Control data already available | control: {control} | location: {in_location} [{current}/{total}]",
-          current = which(locations == .x), total = length(locations)
-        ))
+        message(paste0("Control data already available | control: ", control, " | location: ", in_location, " [", which(locations == .x), "/", length(locations), "]"))
       }
     })
   }

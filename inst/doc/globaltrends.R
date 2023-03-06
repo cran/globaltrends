@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 #  
 #  # package version --------------------------------------------------------------
 #  packageVersion("globaltrends")
-#  #> [1] '0.0.12'
+#  #> [1] '0.0.14'
 
 ## ---- eval = FALSE------------------------------------------------------------
 #  # initialize_db ----------------------------------------------------------------
@@ -276,14 +276,6 @@ knitr::opts_chunk$set(
 #  plot_voi_doi(data_voi, data_doi, type = "obs")
 #  
 #  get_abnorm_hist(data_voi, type = "obs")
-
-## ---- eval = FALSE------------------------------------------------------------
-#  # computation inverted gini coefficient ----------------------------------------
-#  dplyr::coalesce(1 - ineq::ineq(search_score, type = "Gini"), 0)
-#  # computation inverted herfindahl index ----------------------------------------
-#  dplyr::coalesce(1 - sum((search_score / sum(search_score))^2), 0)
-#  # computation inverted entropy -------------------------------------------------
-#  dplyr::coalesce(-1 * ineq::ineq(search_score, parameter = 1, type = "entropy"), 0)
 
 ## ---- eval = FALSE------------------------------------------------------------
 #  # adapt export and plot options ------------------------------------------------

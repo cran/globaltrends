@@ -21,20 +21,23 @@
 #' the mapping, object search volumes are divided by the sum of control search
 #' volumes in the respective control batch. We use the sum of search volumes for
 #' a set of control keywords, rather than the search volumes for a single
-#' control keyword, to smooth-out variation in the underlying control data. When
-#' synonyms were specified through `add_synonym`, search scores for
-#' synonyms are added to the main keyword.
+#' control keyword, to smooth-out variation in the underlying control data.
 #'
 #' *Castelnuovo, E. & Tran, T. D. 2017. Google It Up! A Google Trends-based
 #' Uncertainty index for the United States and Australia. Economics Letters,
 #' 161: 149-153.*
 #'
+#' @section Note:
+#' When synonyms were specified through `add_synonym`, search
+#' scores for synonyms are added to the main keyword.
 #'
 #' @param control Control batch for which the data is downloaded. Object
 #' of type `numeric`. Defaults to 1.
+#'
 #' @param object Object batch for which the data is downloaded. Object
 #' of type `numeric` or object of type `list` containing single
 #' objects of type `numeric`.
+#'
 #' @param locations List of countries or regions for which the data is
 #' downloaded. Refers to lists generated in `start_db`. Defaults to
 #' `countries`.
@@ -68,7 +71,7 @@
 #'
 #' @export
 #' @rdname compute_score
-#' @importFrom DBI dbWriteTable
+#' @importFrom DBI dbAppendTable
 #' @importFrom dplyr anti_join
 #' @importFrom dplyr case_when
 #' @importFrom dplyr coalesce
@@ -81,7 +84,6 @@
 #' @importFrom dplyr mutate
 #' @importFrom dplyr select
 #' @importFrom dplyr summarise
-#' @importFrom glue glue
 #' @importFrom lubridate as_date
 #' @importFrom purrr walk
 #' @importFrom rlang .data
@@ -265,7 +267,7 @@ compute_score.numeric <- function(object, control = 1, locations = gt.env$countr
               TRUE ~ FALSE
             )
           )
-          dbWriteTable(
+          dbAppendTable(
             conn = gt.env$globaltrends_db,
             name = "data_score",
             value = out,
@@ -274,7 +276,7 @@ compute_score.numeric <- function(object, control = 1, locations = gt.env$countr
         }
       }
       in_location <- .x
-      message(glue("Successfully computed search score | control: {control} | object: {object} | location: {in_location} [{current}/{total}]", current = which(locations == .x), total = length(locations)))
+      message(paste0("Successfully computed search score | control: ", control, " | object: ", object, " | location: ", in_location, " [", which(locations == .x), "/", length(locations), "]"))
     })
     .aggregate_synonym(object = object)
     if (!ts_control | !ts_object) {
@@ -283,7 +285,7 @@ compute_score.numeric <- function(object, control = 1, locations = gt.env$countr
         first(!c(ts_control, ts_object)) ~ "control",
         last(!c(ts_control, ts_object)) ~ "object"
       )
-      warning(glue("You provided {text} data for less than 24 months.\nNo time series adjustments possible."))
+      warning(paste0("You provided ", text, " data for less than 24 months.\nNo time series adjustments possible."))
     }
   }
 }
@@ -322,7 +324,7 @@ compute_voi <- function(object, control = 1) {
   out <- mutate(data, day = 1, month = month(.data$date), year = year(.data$date))
   out <- group_by(out, .data$location, .data$keyword, .data$year, .data$month, .data$day)
   out <- summarise(out, hits = mean(.data$hits), .groups = "drop")
-  out <- mutate(out, date = ymd(glue("{.data$year}-{.data$month}-{.data$day}")))
+  out <- mutate(out, date = ymd(paste(.data$year, .data$month, .data$day, sep = "-")))
   out <- select(out, location, keyword, date, hits)
   return(out)
 }
@@ -353,7 +355,7 @@ compute_voi <- function(object, control = 1) {
 #' @noRd
 #'
 #' @importFrom DBI dbExecute
-#' @importFrom DBI dbWriteTable
+#' @importFrom DBI dbAppendTable
 #' @importFrom dplyr anti_join
 #' @importFrom dplyr bind_rows
 #' @importFrom dplyr collect
@@ -440,7 +442,7 @@ compute_voi <- function(object, control = 1) {
         data <- bind_rows(sub_main, data_synonym_agg, data_synonym_nagg)
         dbExecute(conn = gt.env$globaltrends_db, statement = "DELETE FROM data_score WHERE keyword=?", params = list(keyword_main))
         dbExecute(conn = gt.env$globaltrends_db, statement = "DELETE FROM data_score WHERE keyword=?", params = list(.x))
-        dbWriteTable(conn = gt.env$globaltrends_db, name = "data_score", value = data, append = TRUE)
+        dbAppendTable(conn = gt.env$globaltrends_db, name = "data_score", value = data)
       })
     }
   }
